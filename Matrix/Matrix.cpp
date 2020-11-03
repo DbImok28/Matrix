@@ -42,16 +42,19 @@ public:
 			data[i] = mat.data[i];
 		}
 	}
-	
 
+	bool isQuad()
+	{
+		return lines == columns;
+	}
 
 	int getAt(int line, int column)
 	{
-		return data[columns * column + line];
+		return data[(lines - 1) * line + column];
 	}
 	void setAt(int line, int column, int newData)
 	{
-		data[columns * column + line] = newData;
+		data[(lines - 1) * line + column] = newData;
 	}
 	Matrix operator+(Matrix mat)
 	{
@@ -74,9 +77,9 @@ public:
 		}
 		return result;
 	}
-	// cij = ... + ain · bnj
 	Matrix operator*(Matrix mat)
 	{
+		// cij = ... + ain · bnj
 		Matrix result(lines, mat.columns);
 		for (int i = 0; i < lines; i++)
 		{
@@ -93,8 +96,42 @@ public:
 		}
 		return result;
 	}
-
 	
+	void transpose()
+	{
+		int temp;
+		if (isQuad())
+		{
+			for (int i = 0; i < lines / 2; i++)
+			{
+				for (int j = 0; j < columns; j++)
+				{
+					temp = getAt(i, j);
+					setAt(i, j, getAt(j, i));
+					setAt(j, i, temp);
+				}
+			}
+		}
+		else
+		{
+			int* mat = new int[columns * lines];
+
+			for (int i = 0; i < lines; i++)
+			{
+				for (int j = 0; j < columns; j++)
+				{
+					mat[lines * j + i] = getAt(i, j);
+				}
+			}
+			delete[] data;
+
+			temp = lines;
+			lines = columns;
+			columns = temp;
+
+			data = mat;
+		}
+	}
 
 	void print()
 	{
@@ -103,11 +140,14 @@ public:
 		{
 			for (int j = 0; j < columns; j++)
 			{
-				std::cout << getAt(i, j) << " ";	
+				std::cout << getAt(i, j);
+				if (j != columns - 1)
+					std::cout << ',';
 			}
-			std::cout << std::endl;
+			if (i != lines - 1)
+				std::cout << std::endl << ' ';
 		}
-		std::cout <<')'<< std::endl;
+		std::cout << ')' << std::endl;
 	}
 };
 
@@ -120,7 +160,6 @@ int main()
 	//m1.setAt(1, 1, 4);
 	m1.print();
 
-
 	Matrix m2(2, 2);
 	m2.setAt(0, 0, 6);
 	m2.setAt(0, 1, 1);
@@ -129,8 +168,8 @@ int main()
 	m2.print();
 
 	auto m3 = m1 * m2;
-	//auto m4 = m2 * m1;
-
 	m3.print();
-	//m4.print();
+
+	m1.transpose();
+	m1.print();
 }
