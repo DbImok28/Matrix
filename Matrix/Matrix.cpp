@@ -1,175 +1,209 @@
 #include <iostream>
 #include <string>
+#include "Matrix.hpp"
 
-class Matrix
+Matrix::Matrix(int lines, int columns)
 {
-public:
-	int columns;
-	int lines;
-	int* data;
+	this->columns = columns;
+	this->lines = lines;
 
-	Matrix(int lines, int columns)
+	data = new float[columns * lines];
+}
+Matrix::~Matrix()
+{
+	delete[] data;
+}
+
+Matrix::Matrix(const Matrix& mat)
+{
+	columns = mat.columns;
+	lines = mat.lines;
+	data = new float[columns * lines];
+
+	for (int i = 0; i < columns * lines; i++)
 	{
-		this->columns = columns;
-		this->lines = lines;
-
-		data = new int[columns * lines];
+		data[i] = mat.data[i];
 	}
-	~Matrix()
+}
+Matrix& Matrix::operator=(const Matrix& mat)
+{
+	columns = mat.columns;
+	lines = mat.lines;
+	data = new float[columns * lines];
+
+	for (int i = 0; i < columns * lines; i++)
 	{
-		delete[] data;
+		data[i] = mat.data[i];
 	}
+}
 
-	Matrix(const Matrix& mat)
+bool Matrix::isQuad()
+{
+	return lines == columns;
+}
+
+float Matrix::getAt(int line, int column)
+{
+	return data[(columns)*line + column];
+}
+void Matrix::setAt(int line, int column, float newData)
+{
+	data[(columns)*line + column] = newData;
+}
+Matrix Matrix::operator+(Matrix mat)
+{
+	Matrix result(lines, columns);
+	for (int i = 0; i < lines; i++)
 	{
-		columns = mat.columns;
-		lines = mat.lines;
-		data = new int[columns * lines];
-
-		for (int i = 0; i < columns * lines; i++)
+		for (int j = 0; j < columns; j++)
 		{
-			data[i] = mat.data[i];
+			result.setAt(i, j, getAt(i, j) + mat.getAt(i, j));
 		}
 	}
-	Matrix& operator=(const Matrix& mat)
+	return result;
+}
+Matrix Matrix::operator-(Matrix mat)
+{
+	Matrix result(lines, columns);
+	for (int i = 0; i < columns * lines; i++)
 	{
-		columns = mat.columns;
-		lines = mat.lines;
-		data = new int[columns * lines];
-
-		for (int i = 0; i < columns * lines; i++)
+		result.data[i] = data[i] - mat.data[i];
+	}
+	return result;
+}
+Matrix Matrix::operator*(Matrix mat)
+{
+	// cij = ... + ain · bnj
+	Matrix result(lines, mat.columns);
+	for (int i = 0; i < lines; i++)
+	{
+		for (int j = 0; j < mat.columns; j++)
 		{
-			data[i] = mat.data[i];
+			float sum;
+			sum = 0;
+			for (int n = 0; n < columns; n++)
+			{
+				sum += getAt(i, n) * mat.getAt(n, j);
+			}
+			result.setAt(i, j, sum);
 		}
 	}
-
-	bool isQuad()
+	return result;
+}
+Matrix Matrix::operator*(float value)
+{
+	Matrix result(lines, columns);
+	for (int i = 0; i < lines; i++)
 	{
-		return lines == columns;
-	}
-
-	int getAt(int line, int column)
-	{
-		return data[(lines - 1) * line + column];
-	}
-	void setAt(int line, int column, int newData)
-	{
-		data[(lines - 1) * line + column] = newData;
-	}
-	Matrix operator+(Matrix mat)
-	{
-		Matrix result(lines, columns);
-		for (int i = 0; i < lines; i++)
+		for (int j = 0; j < columns; j++)
 		{
+			result.setAt(i, j, getAt(i, j) * value);
+		}
+	}
+	return result;
+}
+
+Matrix Matrix::pow(int value)
+{
+	if (value != 1)
+		return *this * pow(value - 1);
+	else
+		return *this;
+}
+void Matrix::makeTranspose()
+{
+	float* mat = new float[columns * lines];
+	for (int i = 0; i < lines; i++)
+	{
+		for (int j = 0; j < columns; j++)
+		{
+			//std::cout << "{["<< (lines) * j + i <<"]<- "<< getAt(i, j)<<"}" << std::endl;
+			mat[(lines)*j + i] = getAt(i, j);
+		}
+	}
+	int temp = lines;
+	lines = columns;
+	columns = temp;
+
+	delete[] data;
+	data = mat;
+}
+Matrix Matrix::transpose()
+{
+	Matrix result(columns, lines);
+	for (int i = 0; i < lines; i++)
+	{
+		for (int j = 0; j < columns; j++)
+		{
+			result.setAt(j, i, getAt(i, j));
+		}
+	}
+	return result;
+}
+float Matrix::minor(int line, int column)
+{
+	if (isQuad())
+	{
+		Matrix result(lines - 1, columns - 1);
+
+		for (int i = 0, lof = 0; i < lines; i++)
+		{
+			if (i != line)
+			{
+				for (int j = 0, cof = 0; j < columns; j++)
+				{
+					if (column != j)
+						result.setAt(i - lof, j - cof, getAt(i, j));
+					else
+						cof = 1;
+				}
+			}
+			else
+				lof = 1;
+		}
+
+		return powf(-1, line + column) * result.det();
+	}
+}
+float Matrix::det()
+{
+	if (isQuad())
+	{
+		if (lines > 2)
+		{
+			float sum = 0;
 			for (int j = 0; j < columns; j++)
 			{
-				result.setAt(i, j, getAt(i, j) + mat.getAt(i, j));
+				sum += getAt(0, j) * minor(0, j);
 			}
+			return sum;
 		}
-		return result;
+		else if (lines == 2)
+			return getAt(0, 0) * getAt(1, 1) - getAt(1, 0) * getAt(0, 1);
+		else if (lines == 1)
+			return getAt(0, 0);
 	}
-	Matrix operator-(Matrix mat)
-	{
-		Matrix result(lines, columns);
-		for (int i = 0; i < columns * lines; i++)
-		{
-			result.data[i] = data[i] - mat.data[i];
-		}
-		return result;
-	}
-	Matrix operator*(Matrix mat)
-	{
-		// cij = ... + ain · bnj
-		Matrix result(lines, mat.columns);
-		for (int i = 0; i < lines; i++)
-		{
-			for (int j = 0; j < mat.columns; j++)
-			{
-				int sum;
-				sum = 0;
-				for (int n = 0; n < columns; n++)
-				{
-					sum += getAt(i, n) * mat.getAt(n, j);
-				}
-				result.setAt(i, j, sum);
-			}
-		}
-		return result;
-	}
-	
-	void transpose()
-	{
-		int temp;
-		if (isQuad())
-		{
-			for (int i = 0; i < lines / 2; i++)
-			{
-				for (int j = 0; j < columns; j++)
-				{
-					temp = getAt(i, j);
-					setAt(i, j, getAt(j, i));
-					setAt(j, i, temp);
-				}
-			}
-		}
-		else
-		{
-			int* mat = new int[columns * lines];
-
-			for (int i = 0; i < lines; i++)
-			{
-				for (int j = 0; j < columns; j++)
-				{
-					mat[lines * j + i] = getAt(i, j);
-				}
-			}
-			delete[] data;
-
-			temp = lines;
-			lines = columns;
-			columns = temp;
-
-			data = mat;
-		}
-	}
-
-	void print()
-	{
-		std::cout << '(';
-		for (int i = 0; i < lines; i++)
-		{
-			for (int j = 0; j < columns; j++)
-			{
-				std::cout << getAt(i, j);
-				if (j != columns - 1)
-					std::cout << ',';
-			}
-			if (i != lines - 1)
-				std::cout << std::endl << ' ';
-		}
-		std::cout << ')' << std::endl;
-	}
-};
-
-int main()
+}
+Matrix Matrix::attached()
 {
-	Matrix m1(1, 2);
-	m1.setAt(0, 0, 2);
-	m1.setAt(0, 1, 3);
-	//m1.setAt(1, 0, 5);
-	//m1.setAt(1, 1, 4);
-	m1.print();
-
-	Matrix m2(2, 2);
-	m2.setAt(0, 0, 6);
-	m2.setAt(0, 1, 1);
-	m2.setAt(1, 0, 9);
-	m2.setAt(1, 1, 9);
-	m2.print();
-
-	auto m3 = m1 * m2;
-	m3.print();
-
-	m1.transpose();
-	m1.print();
+	Matrix result(lines, columns);
+	for (int i = 0; i < lines; i++)
+		for (int j = 0; j < columns; j++)
+			result.setAt(i, j, minor(i, j));
+	return result;
+}
+Matrix Matrix::inverse()
+{
+	return attached().transpose() * (1 / det());
+}
+void Matrix::print()
+{
+	for (int i = 0; i < lines; i++)
+	{
+		for (int j = 0; j < columns; j++)
+		{
+			std::cout << '[' << getAt(i, j) << ']';
+		}
+		std::cout << std::endl;
+	}
 }
